@@ -230,6 +230,13 @@ tasks.register('versionInfoFile') {
     description "Generates a file CompileTimeInfo.java with version number etc."
 
     def repoDir = new File(rootProject.projectDir, '..')
+    def gitMetadata = new File(repoDir, ".git")
+    def gitDir = gitMetadata.isDirectory()
+        ? gitMetadata
+        : new File(gitMetadata.text.trim().substring("gitdir: ".length())).with { path ->
+            path.isAbsolute() ? path : new File(repoDir, path.path)
+        }
+    gitDir = gitDir.canonicalFile
 
     def dir = new File("$genDir/de/peeeq/wurstscript/")
     def out = new File(dir, 'CompileTimeInfo.java')
@@ -242,13 +249,14 @@ tasks.register('versionInfoFile') {
     // - project version changes
     inputs.property("projectVersion", versionString)
     // - HEAD changes (branch updates)
-    inputs.file(new File(repoDir, ".git/HEAD")).withPropertyName("gitHeadRef")
+    inputs.file(new File(gitDir, "HEAD")).withPropertyName("gitHeadRef")
     // - branch ref changes (only for branch-based HEAD; harmless if missing)
-    inputs.files(fileTree(new File(repoDir, ".git/refs"))).withPropertyName("gitRefs")
+    inputs.file(gitMetadata).optional().withPropertyName("gitDirectory")
+    inputs.files(fileTree(new File(gitDir, "refs"))).withPropertyName("gitRefs")
     // - tags move / new tags (for git describe --tags)
-    inputs.files(fileTree(new File(repoDir, ".git/refs/tags"))).withPropertyName("gitTags")
+    inputs.files(fileTree(new File(gitDir, "refs/tags"))).withPropertyName("gitTags")
     // - working tree dirtiness affects "--dirty"
-    inputs.file(new File(repoDir, ".git/index")).optional().withPropertyName("gitIndex")
+    inputs.file(new File(gitDir, "index")).optional().withPropertyName("gitIndex")
 
     doLast {
         def rev8 = ["git", "rev-parse", "--short=8", "HEAD"].execute(null, repoDir).text.trim()

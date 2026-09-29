@@ -413,6 +413,15 @@ public class ProgramStateIO extends ProgramState {
             // An empty store still has to replace an existing file, which may hold objects that are no longer created.
             if (dataStore.getObjsList().isEmpty()
                 && (mpqEditor == null || !mpqEditor.hasFile("war3map." + fileType.getExt()))) {
+                if (mpqEditor == null) {
+                    getObjectEditingOutputFolder().ifPresent(folder -> {
+                        try {
+                            Files.deleteIfExists(new File(folder, "war3map." + fileType.getExt()).toPath());
+                        } catch (IOException e) {
+                            throw new UncheckedIOException(e);
+                        }
+                    });
+                }
                 WLogger.info("Object file " + fileType.getExt() + " is empty, skipping");
                 continue;
             }
@@ -500,7 +509,9 @@ public class ProgramStateIO extends ProgramState {
             out.close();
             byte[] w3_ = baos.toByteArray();
 
-            exportToWurst(dataStore, fileType, new File(folder.get(), "WurstExportedObjects_" + fileType.getExt() + ".wurst.txt").toPath());
+            File objectOutputFolder = folder.orElseThrow(() -> new IOException("Could not create object output folder"));
+            Files.write(new File(objectOutputFolder, "war3map." + fileType.getExt()).toPath(), w3_);
+            exportToWurst(dataStore, fileType, new File(objectOutputFolder, "WurstExportedObjects_" + fileType.getExt() + ".wurst.txt").toPath());
 
             if (inject) {
                 if (mpqEditor == null) {
