@@ -29,6 +29,9 @@ import java.util.Optional;
 
 public class ProjectConfigBuilder {
     public static final String FILE_NAME = "wurst.build";
+    // Bump when config() injection semantics change without a wurst.build change,
+    // so existing cached scripts cannot be reused with an obsolete map setup.
+    private static final int BUILD_MAP_DATA_INJECTION_VERSION = 2;
 
     /**
      * Apply project configuration with intelligent caching
@@ -85,6 +88,13 @@ public class ProjectConfigBuilder {
             throw new RuntimeException(e);
         }
 
+        // Script config generation reads names, player count and slot data from
+        // the same W3I object. Apply project values before injecting config()
+        // so the script and the W3I written below cannot describe different maps.
+        if (StringUtils.isNotBlank(buildMapData.name())) {
+            prepareW3I(projectConfig, w3I);
+        }
+
         // Only apply buildMapData if config changed or name is present
         if (configNeedsApplying && StringUtils.isNotBlank(buildMapData.name())) {
             WLogger.info("Applying buildMapData config");
@@ -105,12 +115,6 @@ public class ProjectConfigBuilder {
                 applyBuildMapData(projectConfig, mapScript, buildDir, w3data, w3I, result, configHash, outputScriptName);
             }
             // else result.script stays as mapScript (no wurst.build name configured)
-        }
-
-        // The source W3I above is deliberately reloaded each build so downgrading a cached map
-        // cannot discard fields. Reapply configured map data even when the config hash is cached.
-        if (StringUtils.isNotBlank(buildMapData.name())) {
-            prepareW3I(projectConfig, w3I);
         }
 
         result.w3i = new File(buildDir, "war3map.w3i");
@@ -150,6 +154,7 @@ public class ProjectConfigBuilder {
             StringBuilder sb = new StringBuilder();
             WurstProjectBuildMapData buildMapData = projectConfig.buildMapData();
 
+            sb.append("configInjectionVersion:").append(BUILD_MAP_DATA_INJECTION_VERSION).append("\n");
             sb.append("name:").append(buildMapData.name()).append("\n");
             sb.append("author:").append(buildMapData.author()).append("\n");
 

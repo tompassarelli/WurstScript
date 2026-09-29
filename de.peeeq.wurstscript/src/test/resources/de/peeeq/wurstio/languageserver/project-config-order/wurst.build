@@ -1,0 +1,12 @@
+projectName: Lobby Config Probe
+wc3Patch: v3.0
+buildMapData:
+  name: Lobby Config Probe
+  fileName: Lobby_Config_Probe
+  players:
+    - id: 0
+      name: Fighter 1
+      controller: USER
+    - id: 1
+      name: Fighter 2
+      controller: USER
