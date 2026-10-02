@@ -199,7 +199,9 @@ public class RunTests extends UserRequest<Object> {
                 }
             }
             if (matched.isEmpty()) {
-                println("No tests match filter '" + testFilter.get() + "'.");
+                throw new RequestFailedException(MessageType.Error,
+                    "No tests match filter '" + testFilter.get() + "'. "
+                        + "Filters match a literal substring of Package.function (case-insensitive).");
             } else if (!compactOutput) {
                 println("Filter '" + testFilter.get() + "' matched " + matched.size() + " test(s):");
                 for (String name : matched) {

@@ -2,6 +2,7 @@ package de.peeeq.wurstio;
 
 import org.wurstscript.projectconfig.WurstProjectConfigData;
 import de.peeeq.wurstio.languageserver.requests.RunTests;
+import de.peeeq.wurstio.languageserver.requests.RequestFailedException;
 import de.peeeq.wurstio.mpq.MpqEditor;
 import de.peeeq.wurstio.utils.FileUtils;
 import de.peeeq.wurstscript.RunArgs;
@@ -86,6 +87,9 @@ public class CompilationProcess {
         if (runArgs.isRunTests()) {
             timeTaker.measure("Run tests",
                     () -> runTests(gui, compiler, runArgs));
+            if (gui.getErrorCount() > 0) {
+                return null;
+            }
         }
 
         timeTaker.measure("Run compiletime functions", () ->compiler.runCompiletime(WurstProjectConfigData.empty(), isProd, false));
@@ -197,7 +201,12 @@ public class CompilationProcess {
                 out.print(message);
             }
         };
-        runTests.runTests(translator, compiler.getImProg(), Optional.empty(), Optional.empty());
+        try {
+            runTests.runTests(translator, compiler.getImProg(), Optional.empty(), Optional.empty());
+        } catch (RequestFailedException e) {
+            gui.sendError(new CompileError(compiler.getImProg(), e.getMessage()));
+            return;
+        }
 
         for (RunTests.TestFailure e : runTests.getFailTests()) {
             gui.sendError(new CompileError(e.getFunction(), e.getMessage()));
