@@ -169,6 +169,38 @@ public class CompiletimeNativesTest {
     }
 
     @Test
+    public void standaloneCompiletimeWritesBinaryObjectFile() throws Exception {
+        File objectFile = new File(new File("_build", "objectEditingOutput"), "war3map.w3u");
+        byte[] previousOutput = objectFile.isFile() ? Files.readAllBytes(objectFile.toPath()) : null;
+        WurstGuiLogger gui = new WurstGuiLogger();
+        try {
+            ProgramStateIO state = new ProgramStateIO(Optional.empty(), null, gui, emptyProg(), true);
+            CompiletimeNatives natives = new CompiletimeNatives(state, null, false);
+            int baseId = ObjectHelper.objectIdStringToInt("hfoo");
+            int newId = ObjectHelper.objectIdStringToInt("hf01");
+            natives.createObjectDefinition(ILconstString.fromText("w3u"), new ILconstInt(newId), new ILconstInt(baseId));
+
+            state.writeBack(false);
+
+            assertTrue(objectFile.isFile(), "Standalone compilation must emit binary war3map.w3u");
+            W3U result = readW3U(Files.readAllBytes(objectFile.toPath()));
+            assertTrue(result.getCustomObjs().stream().anyMatch(obj -> obj.getId().getVal().equals("hf01")));
+            assertEquals(gui.getErrorCount(), 0, gui.getErrors());
+
+            WurstGuiLogger emptyGui = new WurstGuiLogger();
+            ProgramStateIO emptyState = new ProgramStateIO(Optional.empty(), null, emptyGui, emptyProg(), true);
+            emptyState.writeBack(false);
+            assertFalse(objectFile.exists(), "Object output from a previous compile must be removed when it is no longer defined");
+        } finally {
+            if (previousOutput == null) {
+                Files.deleteIfExists(objectFile.toPath());
+            } else {
+                Files.write(objectFile.toPath(), previousOutput);
+            }
+        }
+    }
+
+    @Test
     public void createObjectDefinitionDoesNotReportExistingMapObjectAsError() throws Exception {
         WurstGuiLogger gui = new WurstGuiLogger();
         ProgramStateIO state = new ProgramStateIO(Optional.empty(), null, gui, emptyProg(), true);
