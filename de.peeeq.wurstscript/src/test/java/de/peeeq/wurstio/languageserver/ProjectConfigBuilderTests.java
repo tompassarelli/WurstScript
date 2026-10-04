@@ -26,6 +26,20 @@ import static org.testng.Assert.expectThrows;
 public class ProjectConfigBuilderTests {
 
     @Test
+    public void jassTargetReplacesLuaSourceLanguageAndRoundTrips() throws Exception {
+        W3I w3i = new W3I();
+        w3i.setFileVersion(W3I.EncodingFormat.W3I_0x27.getVersion());
+        w3i.setScriptLang(W3I.ScriptLang.LUA);
+
+        ProjectConfigBuilder.applyW3IVersion(WurstBuildConfig.empty(), w3i, false);
+
+        assertEquals(w3i.getScriptLang(), W3I.ScriptLang.JASS);
+        Path file = Files.createTempFile("w3i-jass-from-lua", ".w3i");
+        w3i.write(file.toFile(), W3I.EncodingFormat.AS_DEFINED);
+        assertEquals(new W3I(Files.readAllBytes(file)).getScriptLang(), W3I.ScriptLang.JASS);
+    }
+
+    @Test
     public void pinnedPatchDowngradesSourceFormatWhenItIsTooNew() throws Exception {
         assertW3IVersion("1.30", W3I.EncodingFormat.W3I_0x19.getVersion());
         assertW3IVersion("1.31", W3I.EncodingFormat.W3I_0x1C.getVersion());

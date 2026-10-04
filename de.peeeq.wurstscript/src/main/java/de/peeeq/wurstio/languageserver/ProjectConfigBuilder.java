@@ -300,8 +300,8 @@ public class ProjectConfigBuilder {
 
         if (lua) {
             WLogger.info("Applying lua w3i config");
-            w3I.setScriptLang(W3I.ScriptLang.LUA);
         }
+        w3I.setScriptLang(lua ? W3I.ScriptLang.LUA : W3I.ScriptLang.JASS);
 
         // Keep the source encoding unless it exceeds the selected target's supported format.
         // When build config adds fields that require a newer W3I format, promote the format
