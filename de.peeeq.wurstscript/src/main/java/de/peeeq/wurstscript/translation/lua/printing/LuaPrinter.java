@@ -147,7 +147,13 @@ public class LuaPrinter {
     }
 
     public static void print(LuaExprIntVal e, StringBuilder sb, int indent) {
-        sb.append(e.getValI());
+        if (e.getValI().equals(Integer.toString(Integer.MIN_VALUE))) {
+            // Lua32 parses the positive magnitude of -2147483648 as a float before negating it.
+            // Keep both operands in integer range, including after compiler constant folding.
+            sb.append("(-2147483647 - 1)");
+        } else {
+            sb.append(e.getValI());
+        }
     }
 
     public static void print(LuaExprlist e, StringBuilder sb, int indent) {

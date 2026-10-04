@@ -58,6 +58,38 @@ public class LuaBackendAuditTests extends WurstScriptTest {
         return compileLuaWithRunArgs(testName, runArgs, false, lines);
     }
 
+    @Test
+    public void minimumIntegerLiteralStaysInteger() throws IOException {
+        test().testLua(true).executeProg().lines(
+            "package Test",
+            "native testSuccess()",
+            "native I2S(int value) returns string",
+            "@noinline function decimal(int value) returns string",
+            "    return I2S(value)",
+            "init",
+            "    if decimal(-2147483648) == \"-2147483648\"",
+            "        and decimal(-2147483647) == \"-2147483647\"",
+            "        and decimal(2147483647) == \"2147483647\"",
+            "        testSuccess()");
+        String compiled = compiledLua("minimumIntegerLiteralStaysInteger");
+        assertTrue("the minimum integer must use integer operands on Lua32:\n" + compiled,
+            compiled.contains("decimal((-2147483647 - 1))"));
+    }
+
+    @Test
+    public void foldedMinimumIntegerStaysInteger() {
+        String compiled = compileOptimizedLua("foldedMinimumIntegerStaysInteger",
+            "package Test",
+            "native consume(int value)",
+            "init",
+            "    consume(-2147483647 - 1)",
+            "    consume(-2147483648)");
+        assertTrue("folded integers must retain their type on Lua32:\n" + compiled,
+            compiled.contains("consume((-2147483647 - 1))"));
+        assertFalse("the positive magnitude would parse as a Lua32 float:\n" + compiled,
+            compiled.contains("consume(-2147483648)"));
+    }
+
     /**
      * A real operation on literals that do not read exactly, such as the stdlib's REAL_MAX, is left
      * for the game, and so is an overflow: no infinity is ever printed, which Lua would read as an
