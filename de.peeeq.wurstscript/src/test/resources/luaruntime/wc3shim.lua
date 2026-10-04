@@ -60,6 +60,13 @@ end
 function I2S(i) return tostring(math.floor(i)) end
 function S2I(s) return math.floor(tonumber(s) or 0) end
 
+-- Scalar host-Lua math, not an emulation of the game's real-number precision.
+-- Negative inputs return zero, matching the measured MathProvider contract.
+function SquareRoot(value)
+    if value < 0 then return 0 end
+    return math.sqrt(value)
+end
+
 -- StringHash, over bytes, as the game and the interpreter both compute it. Bob Jenkins'
 -- lookup2, with the same normalisation: ascii letters upper-cased and a forward slash read as
 -- a backslash. Kept in step with Wc3StringHash on the Java side.

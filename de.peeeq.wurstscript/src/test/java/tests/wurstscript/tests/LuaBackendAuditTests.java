@@ -39,6 +39,23 @@ import static org.testng.AssertJUnit.assertTrue;
  */
 public class LuaBackendAuditTests extends WurstScriptTest {
 
+    /** Scalar host-Lua math only; this does not establish the game's real-number rounding. */
+    @Test
+    public void squareRootNativeExecutesInLua() throws IOException {
+        test().testLua(true).executeProg().compilationUnits(
+            compilationUnit("common.j", "native SquareRoot takes real value returns real"),
+            compilationUnit("Test.wurst",
+            "package Test",
+            "native testSuccess()",
+            "init",
+            "    if SquareRoot(0.) == 0. and SquareRoot(9.) == 3. and SquareRoot(0.25) == 0.5",
+            "        testSuccess()"));
+        assertTrue("the native call must remain in emitted Lua",
+            compiledLua("squareRootNativeExecutesInLua").contains("SquareRoot("));
+        assertFalse("common.j natives must come from the fixture, without a generated fallback",
+            compiledLua("squareRootNativeExecutesInLua").contains("SquareRoot ="));
+    }
+
     private String compiledLua(String testName) throws IOException {
         return Files.toString(new File("test-output/lua/LuaBackendAuditTests_" + testName + ".lua"), Charsets.UTF_8);
     }
