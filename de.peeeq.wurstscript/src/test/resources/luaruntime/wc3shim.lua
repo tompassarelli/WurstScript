@@ -60,6 +60,37 @@ end
 function I2S(i) return tostring(math.floor(i)) end
 function S2I(s) return math.floor(tonumber(s) or 0) end
 
+-- Warcraft's R2SW contract is measured by StringProvider. Round every real
+-- intermediate to binary32; the standalone Lua test runtime otherwise uses
+-- binary64 and misses carry/precision behavior in diagnostic text.
+local function binary32(value)
+    return string.unpack("f", string.pack("f", value))
+end
+
+function R2SW(value, width, precision)
+    local x = binary32(value)
+    local digits = math.max(0, precision)
+    assert(digits <= 18 and width - digits <= 1000, "R2SW fixture bounds exceeded")
+    local absolute = math.abs(x)
+    local floorValue = math.floor(absolute)
+    local whole = floorValue % 4294967296
+    local fraction = binary32(absolute - floorValue)
+    local scale = binary32(10 ^ digits)
+    local rounded = math.floor(binary32(binary32(fraction * scale) + 0.5))
+    if rounded >= scale then
+        whole = whole + 1
+        rounded = rounded - scale
+    end
+    local signed = x < 0 and -whole or whole
+    if signed >= 2147483648.0 then signed = signed - 4294967296.0 end
+    if signed < -2147483648.0 then signed = signed + 4294967296.0 end
+    local sign = (signed < 0 or (signed == 0 and x < 0)) and "-" or ""
+    local integer = string.format("%.0f", math.abs(signed))
+    integer = string.rep(" ", math.max(0, width - digits - #integer)) .. integer
+    local fractional = digits == 0 and "0" or string.format("%0" .. digits .. ".0f", rounded)
+    return sign .. integer .. "." .. fractional
+end
+
 -- Scalar host-Lua math, not an emulation of the game's real-number precision.
 -- Negative inputs return zero, matching the measured MathProvider contract.
 function SquareRoot(value)

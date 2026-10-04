@@ -39,6 +39,31 @@ import static org.testng.AssertJUnit.assertTrue;
  */
 public class LuaBackendAuditTests extends WurstScriptTest {
 
+    /** The standalone native fixture follows StringProvider's measured formatting contract. */
+    @Test
+    public void realFormattingNativeExecutesInLua() throws IOException {
+        test().testLua(true).executeProg().compilationUnits(
+            compilationUnit("common.j", "native R2SW takes real value, integer width, integer precision returns string"),
+            compilationUnit("Test.wurst",
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string message)",
+            "init",
+            "    if R2SW(1116.0, 2, 2) != \"1116.00\" or R2SW(1116.123, 10, 1) != \"     1116.1\"",
+            "        testFail(\"width\")",
+            "    if R2SW(-1.5, 8, 3) != \"-    1.500\" or R2SW(-0.4, 1, 0) != \"-0.0\"",
+            "        testFail(\"sign\")",
+            "    if R2SW(0.125, 5, 2) != \"  0.13\" or R2SW(0.9996, 1, 3) != \"1.000\"",
+            "        testFail(\"rounding\")",
+            "    if R2SW(3000000000., 1, 1) != \"-1294967296.0\"",
+            "        testFail(\"wrap\")",
+            "    if R2SW(1.5, 0, 12) != \"1.499999997952\"",
+            "        testFail(\"binary32 fraction formatting\")",
+            "    testSuccess()"));
+        assertTrue(compiledLua("realFormattingNativeExecutesInLua").contains("R2SW("));
+        assertFalse(compiledLua("realFormattingNativeExecutesInLua").contains("R2SW ="));
+    }
+
     /** Scalar host-Lua math only; this does not establish the game's real-number rounding. */
     @Test
     public void squareRootNativeExecutesInLua() throws IOException {
