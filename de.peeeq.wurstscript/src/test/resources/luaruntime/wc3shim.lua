@@ -98,6 +98,11 @@ function SquareRoot(value)
     return math.sqrt(value)
 end
 
+-- Scalar host-Lua atan2, matching MathProvider's argument order and quadrants.
+function Atan2(y, x)
+    return math.atan(y, x)
+end
+
 -- StringHash, over bytes, as the game and the interpreter both compute it. Bob Jenkins'
 -- lookup2, with the same normalisation: ascii letters upper-cased and a forward slash read as
 -- a backslash. Kept in step with Wc3StringHash on the Java side.

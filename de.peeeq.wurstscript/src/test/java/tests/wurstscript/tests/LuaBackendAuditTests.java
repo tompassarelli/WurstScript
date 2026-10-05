@@ -39,6 +39,28 @@ import static org.testng.AssertJUnit.assertTrue;
  */
 public class LuaBackendAuditTests extends WurstScriptTest {
 
+    /** Host scalar atan2 follows MathProvider; this is not a game-rounding claim. */
+    @Test
+    public void atan2NativeExecutesInLua() throws IOException {
+        test().testLua(true).executeProg().compilationUnits(
+            compilationUnit("common.j", "native Atan2 takes real y, real x returns real"),
+            compilationUnit("Test.wurst",
+            "package Test",
+            "native testSuccess()",
+            "native testFail(string message)",
+            "init",
+            "    let forward = Atan2(1., 1.)",
+            "    let backward = Atan2(1., -1.)",
+            "    let downward = Atan2(-1., 0.)",
+            "    if forward < 0.7853 or forward > 0.7855 or backward < 2.3561 or backward > 2.3563",
+            "        testFail(\"quadrants\")",
+            "    if downward < -1.5709 or downward > -1.5707 or Atan2(0., 1.) != 0.",
+            "        testFail(\"axes\")",
+            "    testSuccess()"));
+        assertTrue(compiledLua("atan2NativeExecutesInLua").contains("Atan2("));
+        assertFalse(compiledLua("atan2NativeExecutesInLua").contains("Atan2 ="));
+    }
+
     /** The standalone native fixture follows StringProvider's measured formatting contract. */
     @Test
     public void realFormattingNativeExecutesInLua() throws IOException {
